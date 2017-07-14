@@ -390,14 +390,29 @@ class PatternData {
 	* Load all of the rules related to Pattern Data
 	*/
 	public static function loadRules($options) {
-		foreach (glob(__DIR__."/PatternData/Rules/*.php") as $filename) {
-			$ruleName = str_replace(".php","",str_replace(__DIR__."/PatternData/Rules/","",$filename));
-			if ($ruleName[0] != "_") {
-				$ruleClass = "\PatternLab\PatternData\Rules\\".$ruleName;
-				$rule      = new $ruleClass($options);
-				self::setRule($ruleName, $rule);
+		$ruleClasses = Config::getOption("enabledPatternRules");
+
+                // Allow the enabled Pattern Data Rules to be overridden in
+		// config. Use the default rules if the config key is empty.
+		if (!$ruleClasses || !is_array($ruleClasses)) {
+                	$ruleClasses = [];
+
+                	foreach (glob(__DIR__."/PatternData/Rules/*.php") as $filename) {
+				$ruleName = str_replace(".php","",str_replace(__DIR__."/PatternData/Rules/","",$filename));
+				if ($ruleName[0] != "_") {
+					$ruleClasses[] = "\PatternLab\PatternData\Rules\\".$ruleName;
+				}
 			}
 		}
+
+		// Load the configured rules.
+		foreach ($ruleClasses as $ruleClass) {
+			$parts = explode('\\', $ruleClass);
+                        $ruleName = end($parts);
+			$rule = new $ruleClass($options);
+			self::setRule($ruleName, $rule);
+		}
+
 	}
 
 	/**
